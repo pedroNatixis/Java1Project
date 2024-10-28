@@ -13,6 +13,7 @@ public class DbContext {
 
     // Instâncias das classes de acesso às tabelas
     private DbPerson dbPerson;
+    private DbUser dbUser;
 
     // Construtor público para permitir novas instâncias
     public DbContext() {
@@ -22,12 +23,18 @@ public class DbContext {
             
             // Inicializar as classes de acesso às tabelas
             this.dbPerson = new DbPerson(this);
+            this.dbUser = new DbUser(this);
             
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
     }
-
+    // Método para returnar uma nova conexão
+    public Connection getNewConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+    
+    
     // Método para obter a conexão
     public Connection getConnection() {
         return this.connection;
@@ -47,6 +54,10 @@ public class DbContext {
     // Métodos para obter as instâncias das classes específicas
     public DbPerson getDbPerson() {
         return dbPerson;
+    }
+    
+    public DbUser getDbUser() {
+        return dbUser;
     }
 
 }
