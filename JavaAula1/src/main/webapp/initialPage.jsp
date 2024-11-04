@@ -26,7 +26,7 @@
                             <span class="navbar-text">Bem-vindo, <%= loggedInUser %>!</span>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="logOut">Log Out</a>
+                            <a class="nav-link" href="logOut" style="color:red;">Log Out</a>
                         </li>
                     <% } else { %>
                         <li class="nav-item">

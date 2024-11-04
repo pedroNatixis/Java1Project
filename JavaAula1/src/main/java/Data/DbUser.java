@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.mysql.cj.xdevapi.Statement;
+
 import Models.User;
 
 public class DbUser {
@@ -72,22 +74,54 @@ public class DbUser {
     
     
     public boolean addUser(User user) {
-        String query = "INSERT INTO user (username, password, email) VALUES (?, ?, ?)";
+        String userQuery = "INSERT INTO user (username, password, email) VALUES (?, ?, ?)";
+        String clientQuery = "INSERT INTO client (userId, name, phone, address, nif, dateOfBirth) VALUES (?, ?, ?, ?, ?, ?)";
         Connection conn = null;
-        
+
         try {
-            conn = dbContext.getNewConnection(); // Supondo que este método exista no DbContext
-            PreparedStatement ps = conn.prepareStatement(query);
+            conn = dbContext.getNewConnection(); // Obter nova conexão
+            conn.setAutoCommit(false); // Inicia uma transação
+
+            // Primeiro, cria o utilizador e obtém o userId
+            PreparedStatement userPs = conn.prepareStatement(userQuery, java.sql.Statement.RETURN_GENERATED_KEYS);
+            userPs.setString(1, user.UserName);
+            userPs.setString(2, user.PassWord);
+            userPs.setString(3, user.Email);
             
-            ps.setString(1, user.UserName);
-            ps.setString(2, user.PassWord); 
-            ps.setString(3, user.Email);
-            
-            int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0; // Retorna true se o utilizador foi adicionado com sucesso
+            int userRowsAffected = userPs.executeUpdate();
+
+            // Obter o ID do utilizador criado
+            ResultSet generatedKeys = userPs.getGeneratedKeys();
+            int userId = 0;
+            if (generatedKeys.next()) {
+                userId = generatedKeys.getInt(1); // Obter o ID do utilizador
+            }
+
+            // Agora, cria o cliente com user_id associado e parâmetros vazios
+            PreparedStatement clientPs = conn.prepareStatement(clientQuery);
+            clientPs.setInt(1, userId); // Associa o user_id ao cliente
+            clientPs.setString(2, null); // Parâmetros vazios
+            clientPs.setString(3, null);
+            clientPs.setString(4, null);
+            clientPs.setString(5, null);
+            clientPs.setDate(6, null); // ou java.sql.Date.valueOf(LocalDate.now()) se preferires
+
+            int clientRowsAffected = clientPs.executeUpdate();
+
+            // Confirma a transação se ambos os inserts forem bem-sucedidos
+            conn.commit();
+
+            return userRowsAffected > 0 && clientRowsAffected > 0; // Retorna true se ambos foram adicionados com sucesso
         } catch (SQLException e) {
             System.out.println("Erro ao inserir dados na base de dados: " + e.getMessage());
-            e.printStackTrace(); // Para depuração, evite em produção
+            try {
+                if (conn != null) {
+                    conn.rollback(); // Desfaz as alterações se ocorrer um erro
+                }
+            } catch (SQLException rollbackEx) {
+                rollbackEx.printStackTrace();
+            }
+            e.printStackTrace(); // Para depuração
             return false; // Retorna false em caso de erro
         } finally {
             // Fecha a conexão apenas se não estiver null
